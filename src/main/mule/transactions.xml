@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="GetTransactions" doc:id="d462b81a-14ce-4d34-9fed-ded83e71e7cb" >
+		<http:listener doc:name="GET /accounts/{id}/transactions" doc:id="72fbfa0d-7cc5-4e4e-8bd0-995679ca089c" config-ref="HTTP_Listener_config" path="/accounts/{id}/transactions" allowedMethods="GET">
+			<http:response >
+				<http:headers ><![CDATA[#[{
+	number_of_transactions: vars.NbrTranactions,
+	account_id: vars.acctId,
+	csr_user_id: vars.userID
+}]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<set-variable value="#[attributes.headers.csr_user_id default '123']" doc:name="userID" doc:id="3e41c530-cf76-4675-b579-1c2b3715b46d" variableName="userID"/>
+		<set-variable value="#[attributes.uriParams.id]" doc:name="acctID" doc:id="6eaf470d-93c0-4784-b307-9a95bea07e7c" variableName="acctID"/>
+		<ee:transform doc:name="Transform Message" doc:id="f0feb51c-2d09-4681-8283-581d5477bf91" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://training.mulesoft.com/
+---
+{
+	ns0#GetTransactionsforCustomers: {
+		customerID: (vars.acctId as String default "123")
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume doc:name="Get Tranactions" doc:id="c5547b64-60dd-4126-b7b3-328b1b479672" config-ref="Tranactions_Web_Service_Consumer_Config" operation="GetTransactionsforCustomers"/>
+		<set-variable value="#[sizeOf(payload..*transaction default [0])]" doc:name="NbrTranactions" doc:id="417c5a9c-d442-4bfc-b335-3995975c0e86" variableName="NbrTranactions"/>
+		<ee:transform doc:name="SOAP to XML" doc:id="a2c406d8-ad42-474f-a416-78b1148b9f36" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+payload.body]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

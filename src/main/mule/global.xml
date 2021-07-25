@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:accounts-api="http://www.mulesoft.org/schema/mule/accounts-api"
+	xmlns:cx-accounts-api="http://www.mulesoft.org/schema/mule/cx-accounts-api" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cx-accounts-api http://www.mulesoft.org/schema/mule/cx-accounts-api/current/mule-cx-accounts-api.xsd
+http://www.mulesoft.org/schema/mule/accounts-api http://www.mulesoft.org/schema/mule/accounts-api/current/mule-accounts-api.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="7f25d179-8fed-4f9d-aaae-0382e1ba4fed" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="a9c64ae0-9019-4434-a309-ad37aa4e8594" >
+		<http:request-connection host="diy-api-20201209.us-w2.cloudhub.io" port="80" />
+	</http:request-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="94777e68-6501-494a-8997-6e3e61b401be" >
+		<vm:queues >
+			<vm:queue queueName="CxInputQueue" />
+		</vm:queues>
+	</vm:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="706a9554-9199-4796-a093-0dfa765e9354" file="config.yaml" />
+	<accounts-api:config name="Accounts_API_Config" doc:name="Accounts API Config" doc:id="d4074304-48f7-4d7c-bd16-798249b74fa9" property_host="${accountsx.host}" property_port="${accountsx.port}" property_protocol="${accountsx.protocol}" property_basePath="${accountsx.basepath}" />
+	<wsc:config name="Tranactions_Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="60c52adf-ac10-43ed-b4f2-fd755144bfae" >
+		<wsc:connection wsdlLocation="${transactions.wsdl}" service="${transactions.service}" port="${transactions.port}" address="${transactions.address}"/>
+	</wsc:config>	
+	
+	
+	
+</mule>

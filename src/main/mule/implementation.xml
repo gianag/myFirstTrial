@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:accounts-api="http://www.mulesoft.org/schema/mule/accounts-api"
+	xmlns:cx-accounts-api="http://www.mulesoft.org/schema/mule/cx-accounts-api"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/cx-accounts-api http://www.mulesoft.org/schema/mule/cx-accounts-api/current/mule-cx-accounts-api.xsd
+http://www.mulesoft.org/schema/mule/accounts-api http://www.mulesoft.org/schema/mule/accounts-api/current/mule-accounts-api.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="customeraccountsdiy61Flow1" doc:id="d4dae207-28cd-4a1d-95c6-4584611f8309" >
+		<http:listener doc:name="/account" doc:id="4b3666e3-d92d-4841-b2e4-9512b3f5a409" config-ref="HTTP_Listener_config" path="/account"/>
+		<set-variable value="#[message.attributes.queryParams.cname]" doc:name="CxName" doc:id="55bc2e94-85ac-4c18-aa51-8a7fafd02882" variableName="CxName"/>
+		<set-variable value='#[message.attributes.queryParams.ctype]' doc:name="CxType" doc:id="6d4631be-2178-4556-8982-eda8a139923b" variableName="CxType"/>
+		<set-variable value='#[attributes.queryParams.condition default "AND"]' doc:name="URLCondition" doc:id="68c51a0b-0ff1-4bb8-8555-dd29b7008b77" variableName="URLCondition"/>
+		<validation:is-true doc:name="Has either name and/or type" doc:id="47c84cd5-cf68-4016-ba2a-29b7487244a2" expression="#[vars.CxName != null or vars.CxType != null]" message='"Must enter name or type"'/>
+		<validation:is-true doc:name="Has either business or personal in CxType" doc:id="9636b488-01c9-455d-8563-8e8ef99e935b" message='"Must enter type:  business or personal"' expression="#[['business','personal'] contains vars.CxType]"/>
+		<validation:matches-regex doc:name="Must enter AND or OR searc" doc:id="34bb1b83-fd61-434f-bea6-2bf9ef318e06" regex="^(AND|OR)$" value="#[vars.URLCondition]" message='"Must enter AND or OR search"'/>
+		<choice doc:name="Choice" doc:id="23ec7a4c-8917-4241-90a5-db7625dd5454" >
+			<when expression="#[vars.CxName != null]">
+				<flow-ref doc:name="GetAccountsByName" doc:id="cec8f46f-98a2-42b0-9c8d-3db9fd5b6dec" name="GetAccountsByName"/>
+			</when>
+			<when expression="#[vars.CxType != null]">
+				<flow-ref doc:name="GetAccountsByType" doc:id="76102204-fa4a-45f1-a62d-db0b277d90ca" name="GetAccountsByType"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="getAllAccounts" doc:id="95b88e09-1c65-4253-8632-b4e42f04bdf8" name="getAllAccounts"/>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="to JSON" doc:id="3847ecbf-5d4f-4167-9bba-1d62b9cae5d5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="cda05722-5c7d-4f6f-965f-8d4a568f94d4" />
+	</flow>
+	<flow name="getAllAccounts" doc:id="66c82b6e-45d7-476f-88b9-fceaed342696" >
+		<scatter-gather doc:name="Scatter-Gather" doc:id="16bf51c6-e667-4c6a-a1ad-9cf8d3e4e500" >
+			<route >
+				<flow-ref doc:name="GetAccountsByName" doc:id="e218c706-e756-4c16-b542-0133a345a117" name="GetAccountsByName"/>
+			</route>
+			<route >
+				<flow-ref doc:name="GetAccountsByType" doc:id="8966a308-ed23-4496-8611-1a684263f11c" name="GetAccountsByType"/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="flatten" doc:id="57573f3b-7897-4abc-b09f-44dafeb0ddf9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+flatten(payload..payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="bfb5e710-8698-4043-964e-b5e00fe95c13" />
+	</flow>
+	<flow name="SetVariable-userID" doc:id="07b9ebf7-12df-495c-9c96-b2b20aca710d" >
+		<logger level="INFO" doc:name="Logger" doc:id="14985bf5-777c-4d7b-ae3c-b36ba4c79dc2" />
+		<set-variable value="#[message.attributes.headers.csr_user_id default '123']" doc:name="userID" doc:id="ffcadbc7-2238-4e63-98a3-eed8096673bd" variableName="userID"/>
+	</flow>
+	<flow name="GetAccountsByName" doc:id="feb6c9a1-f6ab-44e3-9b0b-2725bd4d3357" >
+		<logger level="INFO" doc:name="Log entry at start of flow" doc:id="8359a8dc-dff6-4032-b3d3-5fd84b4f4052" message="Log entry at start of flow"/>
+		<flow-ref doc:name="SetVariable-userID" doc:id="c0b46b6d-ad9e-4290-b42d-5cf707f59937" name="SetVariable-userID"/>
+		<set-variable value="#[message.attributes.queryParams.cname default 'Mat']" doc:name="CxName" doc:id="a23549fb-c853-47da-9a87-a43e75cdae5c" variableName="CxName"/>
+		<logger level="INFO" doc:name="Log entry before API Request" doc:id="1c234956-8f2f-4cc5-99b7-fc43cb79ba95" message="Log entry before API Request" />
+		<accounts-api:get-accounts doc:name="Get Accounts" doc:id="e87ea4be-415c-40ba-a4b9-4a7752b99b78" config-ref="Accounts_API_Config" user-id="#[vars.userID]" client-id="${accountsx.client_id}" client-secret="${accountsx.client_secret}" account-name="#[vars.CxName]"/>
+		<logger level="INFO" doc:name="Log entry after Get accounts" doc:id="3dbbd792-70df-4afc-a980-526051ecbbab" message="Log entry after Get accounts"/>
+	</flow>
+	<flow name="GetAccountsByType" doc:id="6709a754-8149-43be-bc86-5b375ea8e362" >
+		<flow-ref doc:name="SetVariable-userID" doc:id="3c8ce410-9b35-40b7-90b9-b6e6c400d049" name="SetVariable-userID"/>
+		<set-variable value='#[message.attributes.queryParams.ctype default "business"]' doc:name="CxType" doc:id="7826df99-20b1-48c3-a081-bad32bb8f1e8" variableName="CxType"/>
+		<logger level="INFO" doc:name="Logger" doc:id="dbbbb465-1bf1-4fe6-879f-8fe8ff7d003a" />
+		<accounts-api:get-accounts doc:name="Get accounts" doc:id="ef9e0fc3-7500-4879-8d35-f30b9e9a4f2a" config-ref="Accounts_API_Config" user-id="vars.userID" client-id="${accountsx.client_id}" client-secret="${accountsx.client_secret}" account-type="#[vars.CxType]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="777724bc-5c96-4c11-9bf5-1a6ec1575080" />
+	</flow>
+	<flow name="PostAccounts" doc:id="d9c9203a-d148-49eb-8e27-99ddce7cf7a2" >
+		<http:listener doc:name="/accounts" doc:id="a84d86c7-b8ce-4b41-a566-3f4e08d21927" config-ref="HTTP_Listener_config" path="/accounts" allowedMethods="POST">
+			<http:response>
+				<http:headers ><![CDATA[#[{
+	number_of_accounts: vars.NumberOfAccounts,
+	csr_user_id: vars.userID
+}]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<flow-ref doc:name="SetVariable-userID" doc:id="7aa4a602-fc97-47ae-99a7-4002ed92fa72" name="SetVariable-userID"/>
+		<set-variable value='#[sizeOf(payload)]' doc:name="NumberOfAccounts" doc:id="2f5e4b5e-79db-46a9-9692-2be072b5882c" variableName="NumberOfAccounts"/>
+		<vm:publish doc:name="CxInputQueue" doc:id="fb056d6a-f692-4d9b-a0b1-92077e052846" config-ref="VM_Config" queueName="CxInputQueue">
+			<vm:content ><![CDATA[#[output application/json
+---
+{
+	user_id: vars.userID,
+	accounts: payload
+}]]]></vm:content>
+		</vm:publish>
+		<ee:transform doc:name="Transform Message" doc:id="a192c782-09bf-4fa5-afb3-77e1f7895ae6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Accounts submitted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="741dc271-e1bd-4d1a-9870-7d9b899b0f52" />
+	</flow>
+	<flow name="customeraccountsdiy61Flow" doc:id="7c863384-63d1-420c-ba51-99095d47fb3b" >
+		<vm:listener doc:name="CxInputQueue" doc:id="f74b65b9-b27a-4e43-bef4-8a1540160cf3" config-ref="VM_Config" queueName="CxInputQueue"/>
+		<logger level="INFO" doc:name="Logger" doc:id="4b870203-fc56-47e6-bc99-ae10b07f728e" />
+		<accounts-api:create-account doc:name="Create account" doc:id="711d805f-2481-4ebb-824c-48ddd1bd0eab" config-ref="Accounts_API_Config" user-id="#[payload.user_id]" client-id="${accountsx.client_id}" client-secret="${accountsx.client_secret}">
+			<accounts-api:create-account-request-data ><![CDATA[#[payload.accounts]]]></accounts-api:create-account-request-data>
+		</accounts-api:create-account>
+	</flow>
+</mule>
